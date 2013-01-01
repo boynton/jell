@@ -21,4 +21,7 @@ To run a scheme program, try this:
 ./m java org.jelled.scheme.R4RS test1.scm
 ```
 
+Neither has the necessary primitive functions or syntactic forms provided yet, just the
+minimum to run.
+
 This is all just temporary, until I get the rest of the project checked in.

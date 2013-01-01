@@ -1,0 +1,3 @@
+(def test2 (fn (x y) (println x) (println y)))
+(test2 "hello" "there")
+

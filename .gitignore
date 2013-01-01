@@ -1,6 +1,8 @@
 *.class
-
-# Package Files #
+.DS_Store
+*~
+.classpath
+_garbage
 *.jar
 *.war
 *.ear

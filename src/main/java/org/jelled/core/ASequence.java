@@ -13,11 +13,11 @@ abstract public class ASequence implements ISequence {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("(");
-        sb.append(Value.toString(first()));
+        sb.append(LWriter.toString(first()));
         ISequence o = next();
         while (o != null) {
             sb.append(" ");
-            sb.append(Value.toString(o.first()));
+            sb.append(LWriter.toString(o.first()));
             o = o.next();
         }
         sb.append(")");

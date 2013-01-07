@@ -84,8 +84,8 @@ public class TestValues extends TestCase {
     public void testReadWrite() {
         LEnvironment env = new LEnvironment();
         try {
-            boolean pass1 = false;
-            FileReader fr = pass1? new FileReader("benchx.scm") : new FileReader("/tmp/pass1.txt");
+            boolean pass1 = true;
+            FileReader fr = pass1? new FileReader("tests/benchx.scm") : new FileReader("/tmp/pass1.txt");
             FileWriter fw = pass1? new FileWriter("/tmp/pass1.txt") : new FileWriter("/tmp/pass2.txt");
             LReader reader = new LReader(fr, env);
             LWriter writer = new LWriter(fw, env);

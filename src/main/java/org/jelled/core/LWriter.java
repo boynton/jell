@@ -1,5 +1,6 @@
 package org.jelled.core;
 import java.io.Writer;
+import java.io.StringWriter;
 import java.io.IOException;
 
 public class LWriter {
@@ -7,6 +8,13 @@ public class LWriter {
     final LEnvironment env;
     final Writer out;
     boolean readable;
+
+    public static String toString(Object o) {
+        StringWriter sw = new StringWriter();
+        LWriter w = new LWriter(sw, null);
+        w.encode(o, false);
+        return sw.toString();
+    }
 
     public LWriter(Writer writer, LEnvironment env) {
         this.env = env;

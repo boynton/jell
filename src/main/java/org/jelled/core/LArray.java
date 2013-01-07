@@ -101,7 +101,7 @@ public class LArray implements ISequence {
                 } else {
                     sb.append(' ');
                 }
-                sb.append(Value.toString(v));
+                sb.append(LWriter.toString(v));
             }
             sb.append(']');
             return sb.toString();

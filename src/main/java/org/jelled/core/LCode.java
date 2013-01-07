@@ -25,9 +25,9 @@ public class LCode {
         return sb.toString();
     }
     private String constant(int i) {
-        return Value.toString(LVM.debugInstance.constants[i]);
+        return LWriter.toString(LVM.debugInstance.constants[i]);
     }
-
+    
     public String toString() {
         StringBuilder sb = new StringBuilder();
         toString(sb, "");

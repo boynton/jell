@@ -20,9 +20,9 @@ public abstract class AMap implements IMap {
                     first = false;
                 else
                     sb.append(' ');
-                sb.append(Value.toString(k));
+                sb.append(LWriter.toString(k));
                 sb.append(" ");
-                sb.append(Value.toString(v));
+                sb.append(LWriter.toString(v));
             }
         }
         sb.append('}');

@@ -1,0 +1,10 @@
+{
+   "x": 23,
+   "y" : 57.5,
+   "str": "foo\n This is å test",
+   "sym": foo,
+   "ary": [1, 2, 3],
+   "n": null,
+   "t": true,
+   "f": false
+}

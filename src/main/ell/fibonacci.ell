@@ -1,0 +1,5 @@
+;;should default to a module named "fib", with one exported function called "fib"
+(define fib (lambda (n)
+	(if (<= n 2)
+		1
+		(+ (fib (- n 1)) (fib (- n 2))))))

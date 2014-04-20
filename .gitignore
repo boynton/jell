@@ -1,8 +1,5 @@
-*.class
-.DS_Store
 *~
-.classpath
-_garbage
-*.jar
-*.war
-*.ear
+#*
+target
+test-results/
+_*

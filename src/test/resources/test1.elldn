@@ -1,0 +1,19 @@
+{
+y: 57.5
+sym foo
+str: "foo\n This is å test"
+lst: (1 2 (3 4))
+ary: [1, 2, 3, x:, y],
+map: {x: 1, y: 2},
+n: nil,
+t: true,
+k: foo:
+"string key": foobar:
+23: "numeric key"
+57 "another number"
+a: ['() #t #f]
+f: false
+   fun: (defn (foo x y)
+              {types: {x: string y: number} defaults: {x: "!"} comment: "This is an annotated function"}
+                          (if (= y 0) x (concat x " - " (string y))))
+}

@@ -4,13 +4,11 @@ jell
 A Java implementation of the ℒ (ell) language.
 
 This implementation defines Data representations, a Notation for reading/writing it, 
-a Runtime that defines a little VM for L, and a Compiler to generate VM code from 
+a Runtime that defines a little VM for Ell, and a Compiler to generate VM code from 
 the Ell source.
 
-Ell is a core language, so currently some other lisp is useful to macroexpand normal looking
+Ell is a minimal core language, so some other lisp is useful to macroexpand normal looking
 programs into it.
-This implementation defines a core package that is the basic environment. It then defines
-an R4RS Scheme system on top of it.
 
 ## Usage
 
@@ -27,6 +25,6 @@ To run a core Ell program, i.e. one that calculates digits of pi:
 ./m run org.jelled.Ell src/main/ell/pi.ell 
 ```
 
-More on this coming soon.
+More details coming soon.
 
 

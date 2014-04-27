@@ -25,7 +25,7 @@ public class Data {
     }
 
     @SuppressWarnings("unchecked")
-        static var asVar(Object o) {
+    static var asVar(Object o) {
         if (o == null) return NIL;
         if (o instanceof var) return (var)o;
         if (o instanceof String) return string((String)o);

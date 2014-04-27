@@ -78,29 +78,29 @@ public class Compiler {
                 //sModuleName = sOldModuleName;
                 //check if we are at the outermost lexical frame!!!!!
                 code.emitDefGlobal(sym);
-	            if (bIgnoreResult) code.emitPop();
+                if (bIgnoreResult) code.emitPop();
                 else if (bTail) code.emitReturn();
             } else if (SYM_FUN == fn) { //create a closure
                 if (len < 3)
                     error("syntax error for function: " + expr);
                 var body = cddr(lst);
                 var args = cadr(lst);
-                if (!isList(args))
+                if (args != NIL && !isList(args))
                     error("invalid function formal argument list: " + args);
-                compileLambda(code, env, asList(args), body, bTail, bIgnoreResult);
-			} else if (SYM_SET == fn) {
-	            int [] loc = {0, 0};
+                compileLambda(code, env, args, body, bTail, bIgnoreResult);
+            } else if (SYM_SET == fn) {
+                int [] loc = {0, 0};
                 var tmp = cadr(lst);
                 if (!isSymbol(tmp))
                     error("syntax error: " + expr);
                 LSymbol sym = asSymbol(tmp);
                 compileExpr(code, env, caddr(lst), false, false);
-	            if (calculateLocation(loc, sym, env)) {
-	                code.emitSetLocal(loc[0], loc[1]);
-	            } else {
-	                code.emitDefGlobal(expr); //should be setglobal
-	            }
-	            if (bIgnoreResult) code.emitPop();
+                if (calculateLocation(loc, sym, env)) {
+                    code.emitSetLocal(loc[0], loc[1]);
+                } else {
+                    code.emitDefGlobal(expr); //should be setglobal
+                }
+                if (bIgnoreResult) code.emitPop();
                 else if (bTail) code.emitReturn();
             } else {
                 compileFuncall(code, env, fn, cdr(lst), bTail, bIgnoreResult);

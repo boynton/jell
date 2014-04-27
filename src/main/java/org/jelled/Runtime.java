@@ -37,7 +37,7 @@ public class Runtime extends Notation {
 
     static final LSymbol SYM_FUNCTION = intern("function");
     static final LSymbol SYM_MODULE = intern("module");
-	
+
     static class IntVector {
         int [] elements;
         int count;
@@ -272,7 +272,7 @@ public class Runtime extends Notation {
     }
     public static boolean isCode(var code) { return code instanceof LCode; }
     public static LCode asCode(var code) { if (!isCode(code)) error("not executable", code); return (LCode)code; }
-	
+
     public static class LModule extends var {
         String name;
         var exports;
@@ -303,7 +303,7 @@ public class Runtime extends Notation {
             }
             return i;
         }
-		public String toString() { return "<module " + name + " " + hashCode() + ">"; }
+        public String toString() { return "<module " + name + " " + hashCode() + ">"; }
         var getExports() {
             return exports;
         }
@@ -311,11 +311,11 @@ public class Runtime extends Notation {
             return constants[idx];
         }
         var globalValue(var sym) {
-			var val = globals.get(sym);
+            var val = globals.get(sym);
             if (val == null)
                 error("Unbound variable: " + sym);
             return val;
-		}
+        }
         var global(var sym) {
             return globals.get(sym);
         }
@@ -328,7 +328,7 @@ public class Runtime extends Notation {
         var setGlobal(String name, var value) {
             return setGlobal(intern(name), value);
         }
-        public String operatorName(String javaName) {
+        public static String operatorName(String javaName) {
             if ("eq".equals(javaName))
                 return "=";
             else if ("le".equals(javaName))
@@ -349,7 +349,7 @@ public class Runtime extends Notation {
                 return "/";
             throw error("Unrecognized operator name in primitive: " + javaName);
         }
-        public String primitiveName(String javaName) {
+        public static String primitiveName(String javaName) {
             if (javaName.endsWith("_p"))
                 javaName = javaName.substring(0, javaName.length()-2) + "?";
             else if (javaName.endsWith("_bang"))
@@ -362,7 +362,19 @@ public class Runtime extends Notation {
             return javaName.replace("_","-");
         }
 
-	    public void definePrimitives(Object o) {
+        static String ellName(String javaName) {
+            if (javaName.startsWith("operator_"))
+                return operatorName(javaName.substring(9));
+            else if (javaName.startsWith("primitive_"))
+                return primitiveName(javaName.substring(10));
+            else if (javaName.startsWith("primop_"))
+                return operatorName(javaName.substring(7));
+            else if (javaName.startsWith("prim_"))
+                return primitiveName(javaName.substring(5));
+            return javaName;
+        }
+
+        public void definePrimitives(Object o) {
             Class<?> c = o.getClass();
             //bug: multiple arity methods get redefined, only the last is defined.
             for (Method method : c.getDeclaredMethods()) {
@@ -382,37 +394,37 @@ public class Runtime extends Notation {
                         //check the argument signature. Define "primitiveN" differently than "primitive0" .. "primitive3"
                         setGlobal(sym, new LPrimitive(pname, method, o));
                     } else {
-	                    if (name.startsWith("primop_"))
-	                        pname = operatorName(name.substring(7));
-	                    else if (name.startsWith("prim_"))
-	                        pname = primitiveName(name.substring(5));
-						if (pname != null) {
-	                        LSymbol sym = intern(pname);
-	                        var val = global(sym);
-	                        if (val != null)
-	                            println("*** Warning: redefining " + pname);
-	                        //check the argument signature. Define "primitiveN" differently than "primitive0" .. "primitive3"
-	                        setGlobal(sym, new LPrimitiveN(pname, method, o));
-						}
-					}
+                        if (name.startsWith("primop_"))
+                            pname = operatorName(name.substring(7));
+                        else if (name.startsWith("prim_"))
+                            pname = primitiveName(name.substring(5));
+                        if (pname != null) {
+                            LSymbol sym = intern(pname);
+                            var val = global(sym);
+                            if (val != null)
+                                println("*** Warning: redefining " + pname);
+                            //check the argument signature. Define "primitiveN" differently than "primitive0" .. "primitive3"
+                            setGlobal(sym, new LPrimitiveN(pname, method, o));
+                        }
+                    }
                 }
             }
         }
     }
-    
+
     public static LModule module(String name, Object primitives) {
         LModule module = new LModule(name);
-		if (primitives != null) {
-			try {
-				Class<?> primitivesClass = primitives.getClass();
-	            java.lang.reflect.Method meth = primitivesClass.getMethod("init", LModule.class);
-	            if (meth != null)
-	                meth.invoke(primitives, module);
-	    	} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		return module;
+        if (primitives != null) {
+            try {
+                Class<?> primitivesClass = primitives.getClass();
+                java.lang.reflect.Method meth = primitivesClass.getMethod("init", LModule.class);
+                if (meth != null)
+                    meth.invoke(primitives, module);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return module;
     }
 
     public static boolean isModule(var mod) { return mod instanceof LModule; }
@@ -481,7 +493,7 @@ public class Runtime extends Notation {
         LClosure(var c, Frame f) {
             this((LCode)c, f);
         }
-		
+
         @Override public String toString() {
             return "<closure: " + code + ">";
         }
@@ -492,7 +504,7 @@ public class Runtime extends Notation {
         Method method;
         String name;
 
-		LPrimitive(String name, Method method, Object impl) {
+        LPrimitive(String name, Method method, Object impl) {
             this.name = name;
             this.method = method;
             this.impl = impl;
@@ -502,7 +514,7 @@ public class Runtime extends Notation {
             return "<primitive " + name + ">";
         }
 
-		public var call(var [] params, int offset, int count) {
+        public var call(var [] params, int offset, int count) {
             try {
                 switch (count) {
                 case 0:
@@ -522,29 +534,28 @@ public class Runtime extends Notation {
                     return null;
                 }
             } catch (error e) {
-				throw e;
+                throw e;
             } catch (Exception e) {
-	e.printStackTrace();
-                throw error(method.getName() + ": " + e.getMessage());
+                throw error("while executing " + LModule.ellName(method.getName()) + " : " + e.getMessage());
             }
-		}
+        }
     }
 
     static class LPrimitiveN extends LPrimitive {
-		LPrimitiveN(String name, Method method, Object impl) {
-			super(name, method, impl);
-		}
-		public var call(var [] params, int offset, int count) {
+        LPrimitiveN(String name, Method method, Object impl) {
+            super(name, method, impl);
+        }
+        public var call(var [] params, int offset, int count) {
             try {
-            	return (var)method.invoke(impl, params, offset, count);
+                return (var)method.invoke(impl, params, offset, count);
             } catch (error e) {
-				throw e;
+                throw e;
             } catch (Exception e) {
-                throw error(method.getName() + ": " + e.getMessage());
+                throw error("while executing " + LModule.ellName(method.getName()) + " : " + e.getMessage());
             }
-		}
-	}
-	
+        }
+    }
+
     static class LVM {
 
         var stack[]; //the stack. It is shared with all vm activity to pass data around
@@ -555,13 +566,13 @@ public class Runtime extends Notation {
         Frame environment; //the local variable frame and previous frame state
         var [] constants; //the constant pool for current ops to use
         LModule module; //the module the constants and symboltable use.
-        
+
         List<LSymbol> defs; //this is for capturing new global defs when loading a file, for module mgt purposes. Nothing else.
 
         LVM() {
             stack = new var[16000];
         }
-        
+
         var exec(LCode code) {
             return exec(code, null);
         }
@@ -598,9 +609,9 @@ public class Runtime extends Notation {
                         case GLOBAL_OPCODE:
                             //if (trace) System.err.println("glob\t" + constants[ops[pc+1]]);
                             //stack[--sp] = module.globalValue(constants[ops[pc+1]]);
-							stack[--sp] = module.globals.get(constants[ops[pc+1]]);
-				            if (stack[sp] == null)
-				                error("Unbound variable: " + constants[ops[pc+1]]);
+                            stack[--sp] = module.globals.get(constants[ops[pc+1]]);
+                            if (stack[sp] == null)
+                                error("Unbound variable: " + constants[ops[pc+1]]);
 
                             pc += 2;
                             break;
@@ -684,7 +695,7 @@ public class Runtime extends Notation {
                 } catch (Exception e) {
                     //if the restart continuation is bound, then jump to it.
                     //else
-                    e.printStackTrace();
+                    //e.printStackTrace();
                     System.err.println("*** " + e);
                     //if (trace) System.err.println("------------------ ABORT EXECUTION");
                     return null;
@@ -710,7 +721,7 @@ public class Runtime extends Notation {
                         System.arraycopy(stack, sp, f.elements, 0, argc);
                         sp += argc;
                     }
-                } else { //rest args                                                                                                                
+                } else { //rest args
                     int nMinArgc = -closure.code.argc - 1;
                     if (argc < nMinArgc)
                         error("Wrong number of args (" + argc + ") to " + closure);
@@ -730,7 +741,7 @@ public class Runtime extends Notation {
                 constants = module.constants;
                 pc = 0;
             } else if (fun instanceof LPrimitive) {
-				var o = ((LPrimitive)fun).call(stack, sp, argc);
+                var o = ((LPrimitive)fun).call(stack, sp, argc);
                 sp = sp + argc - 1;
                 stack[sp] = o;
                 pc = savedPc;
@@ -780,7 +791,7 @@ public class Runtime extends Notation {
                 environment = newEnv;
             } else if (fun instanceof LPrimitive) {
                 LPrimitive nProc = (LPrimitive)fun;
-				var o = ((LPrimitive)fun).call(stack, sp, argc);
+                var o = ((LPrimitive)fun).call(stack, sp, argc);
                 sp = sp + argc - 1;
                 stack[sp] = o;
                 pc = environment.pc;
@@ -834,12 +845,12 @@ public class Runtime extends Notation {
 
     public static var runModule(String name, Object primitives) {
         var code = loadModule(name, primitives);
-		println("; begin execution");
+        println("; begin execution");
         var result = exec(code);
         println("; => " + result);
         return result;
     }
-	
+
     public static var loadModule(String name, Object primitives) {
         var f = (name.indexOf('.') > 0)? file(name) : findModule(name);
         if (f == NIL)
@@ -874,9 +885,9 @@ public class Runtime extends Notation {
             expr = read(channel);
         }
         close(channel);
-        println("; read: " + write(source));
+        //println("; read: " + write(source));
         var code = new Compiler(module).compile(source);
-        println("; compiled to: " + write(code));
+        //println("; compiled to: " + write(code));
         return code;
     }
 

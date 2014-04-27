@@ -49,12 +49,12 @@ public class Notation extends Data {
                 return openReader(f);
             } else if (direction == WRITE) {
                 return openWriter(f);
-            } else 
+            } else
                 error("bad direction: " + direction);
         }
         //else if string then readstring
         //else if url then readurl
-		throw error("Cannot open: " + file + " for " + direction);
+        throw error("Cannot open: " + file + " for " + direction);
     }
 
     private static var openReader(var obj) {
@@ -98,34 +98,20 @@ public class Notation extends Data {
     }
 
     public static var read(var source) {
-		boolean allOrNothing = isString(source);
-		LChannel chan = readableChannel(source);
-		var val = chan.read();
-		if (allOrNothing && val == EOI)
-			throw error("read: unexpected end of input");		
+        boolean allOrNothing = isString(source);
+        LChannel chan = readableChannel(source);
+        var val = chan.read();
+        if (allOrNothing && val == EOI)
+            throw error("read: unexpected end of input");
         return val;
     }
-
-    //public static var json(var obj) {
-    //    return json(obj, false);
-    //}
-    //public static var json(var obj, boolean validate) {
-        //coerce the object to be a JSON subset. if validate is passed in, validate that it is already a json subset
-        //array(item, ...) -> array(as_json(item), ...)
-        //object(key, val, ...) -> object(asString(key), as_json(val), ...)
-        //string -> string
-        //number -> number
-        //symbol -> if in [true, false, null] symbol else if nil then null else asString(symbol)
-        //list(item, ...) -> array(as_json(item), ...)
-       // return obj; //fix me
-    //}
 
     public static void close(var channel) {
         if (!isChannel(channel))
             error("Cannot close: " + channel);
         asChannel(channel).close();
     }
-                
+
     static abstract class LChannel extends var implements AutoCloseable {
         boolean readable() { return false; }
         boolean writable() { return false; }
@@ -157,7 +143,7 @@ public class Notation extends Data {
 
     public static class LReaderChannel extends LChannel {
         Reader raw;
-        BufferedReader in;      
+        BufferedReader in;
         int lastc;
         final LSymbol SYM_QUOTE;
         final LSymbol SYM_QUASIQUOTE;
@@ -167,7 +153,7 @@ public class Notation extends Data {
         final LSymbol SYM_FALSE;
         final LSymbol SYM_NIL;
         final LSymbol SYM_NULL;
-        
+
         @Override public String toString() { return "<channel: " + raw + ">"; }
         public LReaderChannel(Reader in) {
             this.raw = in;
@@ -196,7 +182,7 @@ public class Notation extends Data {
                 }
             }
         }
-        
+
         int getChar() {
             try {
                 if (lastc != -1) {
@@ -211,18 +197,18 @@ public class Notation extends Data {
                 return -1;
             }
         }
-    
+
         void ungetChar(int n) {
             lastc = n;
         }
-    
-        final char SINGLE_QUOTE = '\'';    
+
+        final char SINGLE_QUOTE = '\'';
         final String WHITESPACE = " \n\r\t,";
         final String DELIMITER = "()[]{}\";";
         final String ALPHA = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
         final String NUMERIC = "0123456789";
         final String ALPHANUMERIC = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    
+
         @Override
         var read() {
             int c = getChar();
@@ -254,38 +240,38 @@ public class Notation extends Data {
                 } else if (c == SINGLE_QUOTE) {
                     var o = read();
                     if (o != EOI) {
-						if (o == NIL)
-							return NIL;
+                        if (o == NIL)
+                            return NIL;
                         return list(SYM_QUOTE, o);
-					}
+                    }
                     break;
                 } else if (c == '#') {
-					return decodeSharp();
+                    return decodeSharp();
                 } else {
                     var obj;
                     String atom = decodeAtom(c);
-					boolean colon = false;
-					if (atom.endsWith(":")) {
-						colon = true;
-						atom = atom.substring(0, atom.length()-1);
-					} else if (atom.startsWith(":")) {
-						colon = true;
-						atom = atom.substring(atom.length()-1);
-						if (atom.length() == 0) continue; //standalone colons are whitespace
-					}
+                    boolean colon = false;
+                    if (atom.endsWith(":")) {
+                        colon = true;
+                        atom = atom.substring(0, atom.length()-1);
+                    } else if (atom.startsWith(":")) {
+                        colon = true;
+                        atom = atom.substring(atom.length()-1);
+                        if (atom.length() == 0) continue; //standalone colons are whitespace
+                    }
                     try {
                         double d = Double.parseDouble(atom);
                         return number(d); //colons next to numbers are whitespace
                     } catch (NumberFormatException e) {
                     }
                     if (colon) {
-						if (atom.length() == 0) {
-		                    c = getChar();
-							continue; //standalone colons are whitespace
-						}
+                        if (atom.length() == 0) {
+                            c = getChar();
+                            continue; //standalone colons are whitespace
+                        }
                         var k = keyword(LSymbol.intern(atom));
-						return k;
-					}
+                        return k;
+                    }
                     LSymbol sym = LSymbol.intern(atom);
                     if (true) {
                         //hmm. This is a bit like evaluation. to avoid this, could use #t, #f, and '() like scheme does.
@@ -318,16 +304,31 @@ public class Notation extends Data {
                 return null;
             }
         }
-    
-		var decodeSharp() {
+
+        var decodeSharp() {
+            int c = getChar();
+            if (c == '\\') {
+                String token = decodeAtom(0);
+                //FIXME: implement Characters if I want to support Scheme
+                if ("space".equals(token))
+                    return string(" ");
+                else if ("newline".equals(token))
+                    return string("\n");
+                else if (token.length() == 1) {
+                    return string(token);
+                } else
+                    error("Bad character literal: #\\" + token);
+            } else {
+                ungetChar(c);
+            }
             String atom = decodeAtom(0);
-			if ("t".equals(atom)) return TRUE; //scheme
-			if ("f".equals(atom)) return FALSE; //scheme
-			//scheme vectors are #(...)
-			//#( is a lambda in clojure
-			throw error("LReader: bad # entity: " + atom);
-		}
-		
+            if ("t".equals(atom)) return TRUE; //scheme
+            if ("f".equals(atom)) return FALSE; //scheme
+            //scheme vectors are #(...)
+            //#( is a lambda in clojure
+            throw error("LReader: bad # entity: " + atom);
+        }
+
         var decodeString() {
             boolean escape = false;
             int n;
@@ -364,7 +365,7 @@ public class Notation extends Data {
                         break;
                     case 'u':
                     case 'U':
-                        
+
                         cbuf[0] = (char)getChar();
                         cbuf[1] = (char)getChar();
                         cbuf[2] = (char)getChar();
@@ -438,7 +439,57 @@ public class Notation extends Data {
             return ALPHANUMERIC.indexOf((char)c) >= 0;
         }
 
-        List<var> decodeSequence(String type, int end) {
+        var decodeList() {
+            var element;
+            int c;
+            c = getChar();
+            ArrayList<var> lst = new ArrayList<var>();
+            var rest = UNDEFINED;
+            while (c != -1) {
+                if (isWhiteSpace((char)c)) {
+                    c = getChar();
+                    continue;
+                }
+                if (c == ';') {
+                    if (!decodeComment()) {
+                        error("LReader: unterminated list");
+                    } else {
+                        c = getChar();
+                        continue;
+                    }
+                }
+                if (c == '.') {
+                    if (rest != UNDEFINED)
+                        error("LReader: dotted pair");
+                    c = getChar();
+                    if (isWhiteSpace((char)c)) {
+                        rest = read();
+                        if (rest == EOI)
+                            error("LReader: unterminated list");
+                        c = getChar();
+                        break;
+                    }
+                }
+                if (c == ')') {
+                    break;
+                }
+                ungetChar(c);
+                element = read();
+                if (element == EOI) {
+                    error("LReader: unterminated list");
+                } else {
+                    lst.add(element);
+                }
+                c = getChar();
+            }
+            if (c == -1)
+                error("LReader: unterminated list: " + lst);
+            if (rest != UNDEFINED)
+                return makeList(lst, rest);
+            return makeList(lst);
+        }
+
+        var decodeVector() {
             var element;
             int c;
             c = getChar();
@@ -450,42 +501,35 @@ public class Notation extends Data {
                 }
                 if (c == ';') {
                     if (!decodeComment()) {
-                        error("LReader: unterminated " + type);
+                        error("LReader: unterminated vector");
                     } else {
                         c = getChar();
                         continue;
                     }
                 }
-                if (c == end) {
+                if (c == ']') {
                     break;
                 }
                 ungetChar(c);
                 element = read();
                 if (element == EOI) {
-                    error("LReader: unterminated " + type);
+                    error("LReader: unterminated vector");
                 } else {
                     lst.add(element);
                 }
                 c = getChar();
             }
+            var result = makeVector(lst);
             if (c == -1)
-                error("LReader: unterminated " + type + ": " + lst);
-            return lst;
-        }
-
-        var decodeList() {
-            return makeList(decodeSequence("list", ')'));
-        }
-
-        var decodeVector() {
-            return makeVector(decodeSequence("array", ']'));
+                error("LReader: unterminated vector: " + result);
+            return result;
         }
 
         var decodeMap() {
             var key, value;
             int c;
             c = getChar();
-			LMap map = new LMap();
+            LMap map = new LMap();
             while (c != -1) {
                 if (isWhiteSpace((char)c)) {
                     c = getChar();
@@ -520,8 +564,8 @@ public class Notation extends Data {
             int c;
             int i = 0;
             StringBuilder buf = new StringBuilder();
-			if (nFirstChar > 0)
-            	buf.append((char)nFirstChar);
+            if (nFirstChar > 0)
+                buf.append((char)nFirstChar);
             while ((c = getChar()) != -1) {
                 if (isWhiteSpace(c))
                     break;
@@ -530,7 +574,7 @@ public class Notation extends Data {
                     break;
                 }
                 buf.append((char)c);
-				if (c == ':') break;
+                if (c == ':') break;
             }
             return buf.toString();
         }
@@ -538,7 +582,6 @@ public class Notation extends Data {
 
     public static class LWriterChannel extends LChannel {
         Writer raw;
-        String indentAmount = "    ";
         BufferedWriter out;
         LWriterChannel(Writer writer) {
             raw = writer;
@@ -551,11 +594,6 @@ public class Notation extends Data {
         @Override
         boolean writable() { return true; }
 
-        @Override
-        void write(var data) {
-            _write(data, null);
-        }
-
         void putChar(int ch) {
             try {
                 out.write(ch);
@@ -564,18 +602,19 @@ public class Notation extends Data {
             }
         }
 
-        void _write(var data, String indent) {
+        @Override
+        void write(var data) {
             try {
                 if (data == NIL)
                     out.write("nil");
                 else if (isString(data))
                     out.write(Data.escapeString(asString(data).stringValue()));
                 else if (isMap(data))
-                    _writeMap(asMap(data), indent);
+                    _writeMap(asMap(data));
                 else if (isVector(data))
-                    _writeVector(asVector(data), indent);
+                    _writeVector(asVector(data));
                 else if (isList(data))
-                    _writeList(asList(data), indent);
+                    _writeList(asList(data));
                 else if (isSymbol(data))
                     out.write(data.toString());
                 else if (isBoolean(data))
@@ -586,9 +625,9 @@ public class Notation extends Data {
                     out.write(data.toString());
                 else {
                     //error("FIX: " + data);
-					//should probably prevent non datum objects from being written at all
-					//but I like to use write to have a clear debug output of objects, i.e. string vs symbol, etc.
-					//the default toString doesn't distinguish that.
+                    //should probably prevent non datum objects from being written at all
+                    //but I like to use write to have a clear debug output of objects, i.e. string vs symbol, etc.
+                    //the default toString doesn't distinguish that.
                     out.write(data.toString());
                 }
             } catch (IOException e) {
@@ -596,93 +635,57 @@ public class Notation extends Data {
             }
         }
 
-        void _writeList(var lst, String indent) throws IOException {
+        void _writeList(var lst) throws IOException {
             if (lst == NIL) {
-				out.write("nil");
+                out.write("nil");
                 //out.write("()"); //scheme
             } else {
                 out.write("(");
-                if (indent != null) {
-                    String newIndent = indent + indentAmount;
-                    out.write('\n');
-                    out.write(newIndent);
-                    _write(car(lst), newIndent);
-                    lst = cdr(lst);
-                    while (lst != NIL) {
-                        out.write("\n");
-                        out.write(newIndent);
-                        _write(car(lst), newIndent);
-                        lst = cdr(lst);
-                    }
-                } else {
-                    _write(car(lst), null);
-                    lst = cdr(lst);
-                    while (lst != NIL) {
+                write(car(lst));
+                lst = cdr(lst);
+                while (lst != NIL) {
+                    if (isList(lst)) {
                         out.write(" ");
-                        _write(car(lst), null);
+                        write(car(lst));
                         lst = cdr(lst);
+                    } else {
+                        out.write(" . ");
+                        write(lst);
+                        break;
                     }
                 }
                 out.write(")");
             }
         }
 
-        void _writeVector(LVector vec, String indent) throws IOException {
+        void _writeVector(LVector vec) throws IOException {
             int count = vec.length();
             if (count == 0)
                 out.write("[]");
             else {
                 out.write("[");
-                if (indent != null) {
-                    String newIndent = indent + indentAmount;
-                    out.write('\n');
-                    out.write(newIndent);
-                    _write(vec.ref(0), newIndent);
-                    for (int i=1; i<count; i++) {
-                        out.write("\n");
-                        out.write(newIndent);
-                        _write(vec.ref(i), newIndent);
-                    }
-                    out.write("\n");
-                    out.write(indent);
-                    out.write("]");
-                } else {
-                    _write(vec.ref(0), null);
-                    for (int i=1; i<count; i++) {
-                        out.write(" ");
-                        _write(vec.ref(i), null);
-                    }
-                    out.write("]");
+                write(vec.ref(0));
+                for (int i=1; i<count; i++) {
+                    out.write(" ");
+                    write(vec.ref(i));
                 }
+                out.write("]");
             }
         }
 
-        void _writeMap(LMap obj, String indent) throws IOException {
+        void _writeMap(LMap obj) throws IOException {
             int count = obj.length();
             if (count == 0)
                 out.write("{}");
             else {
                 boolean first = true;
-                if (indent != null) {
-                    out.write("{\n");
-                    String newIndent = indent + indentAmount;
-					for (int i=0; i<count; i++) {
-                        if (i > 0)
-                            out.write("\n");
-                        out.write(newIndent);
-                        _write(obj.keyRef(i), newIndent);
+                out.write("{");
+                for (int i=0; i<count; i++) {
+                    if (i > 0)
                         out.write(" ");
-                        _write(obj.valueRef(i), newIndent);
-                    }
-                } else {
-                    out.write("{");
-					for (int i=0; i<count; i++) {
-                        if (i > 0)
-                            out.write(" ");
-                        _write(obj.keyRef(i), null);
-                        out.write(" ");
-                        _write(obj.valueRef(i), null);
-                    }
+                    write(obj.keyRef(i));
+                    out.write(" ");
+                    write(obj.valueRef(i));
                 }
                 out.write("}");
             }
@@ -711,13 +714,13 @@ public class Notation extends Data {
             super(new java.io.StringWriter());
         }
         String getString() {
-			try {
-				out.flush();
-				return raw.toString();
-			} catch (IOException e) {
-				throw error("Cannot write: " + e.getMessage());
-			}
-		}
+            try {
+                out.flush();
+                return raw.toString();
+            } catch (IOException e) {
+                throw error("Cannot write: " + e.getMessage());
+            }
+        }
     }
 
     private static LWriterChannel writableChannel(var chan) {
@@ -745,7 +748,7 @@ public class Notation extends Data {
         write(obj, chan);
         return string(chan.getString());
     }
-    
+
     /** write the notation for the object to the destination. If dest is nil, return a string. */
     public static void write(var obj, var dest) {
         LWriterChannel chan = writableChannel(dest);
@@ -759,4 +762,3 @@ public class Notation extends Data {
 
 
 }
-

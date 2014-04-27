@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 public class Data {
-	public static final String NIL_NAME = "nil";
+    public static final String NIL_NAME = "nil";
     public static final LSymbol SYM_NIL = intern(NIL_NAME); //scheme: no
     public static final LSymbol SYM_BOOLEAN = intern(LBoolean.typeName);
     public static final LSymbol SYM_STRING = intern(LString.typeName);
@@ -24,22 +24,22 @@ public class Data {
         abstract LSymbol type();
     }
 
-    @SuppressWarnings("unchecked")        
-	static var asVar(Object o) {
-		if (o == null) return NIL;
-		if (o instanceof var) return (var)o;
-		if (o instanceof String) return string((String)o);
-		if (o instanceof Number) return number((Number)o);
-		if (o instanceof Boolean) return bool((Boolean)o);
-		if (o instanceof List) return makeList((List<var>)o);
-		if (o instanceof Map) return makeMap((Map<var,var>)o);
-		throw error("Cannot conver to var: " + o.getClass().getName());
-	}
-	static var asVar(boolean b) { return bool(b); }
-	static var asVar(int n) { return number(n); }
-	static var asVar(long n) { return number(n); }
-	static var asVar(double n) { return number(n); }
-	
+    @SuppressWarnings("unchecked")
+        static var asVar(Object o) {
+        if (o == null) return NIL;
+        if (o instanceof var) return (var)o;
+        if (o instanceof String) return string((String)o);
+        if (o instanceof Number) return number((Number)o);
+        if (o instanceof Boolean) return bool((Boolean)o);
+        if (o instanceof List) return makeList((List<var>)o);
+        if (o instanceof Map) return makeMap((Map<var,var>)o);
+        throw error("Cannot conver to var: " + o.getClass().getName());
+    }
+    static var asVar(boolean b) { return bool(b); }
+    static var asVar(int n) { return number(n); }
+    static var asVar(long n) { return number(n); }
+    static var asVar(double n) { return number(n); }
+
     static <T> T typeCast(var obj, Class<T> type, String name) {
         if (type.isInstance(obj))
             return type.cast(obj);
@@ -47,7 +47,7 @@ public class Data {
     }
 
     public static LSymbol type(var data) { return data.type(); }
-    
+
     public static boolean equal(var o1, var o2) {
         if (o1 == o2) return true;
         else if (o1 == null || o2 == null) return false;
@@ -73,9 +73,11 @@ public class Data {
     public static final var NIL = new LSpecial(NIL_NAME, NIL_NAME);
     public static boolean isNil(var obj) { return obj == NIL; }
 
-	public static final LSpecial EOI = new LSpecial("end-of-input", "<end-of-input>");
+    public static final LSpecial EOI = new LSpecial("end-of-input", "<end-of-input>");
     public static boolean isEndOfInput(var obj) { return obj == EOI; }
-	
+
+    public static final var UNDEFINED = new LSpecial("undefined", "<undefined>");
+    public static boolean isUndefined(var obj) { return obj == UNDEFINED; }
 
     public static class error extends RuntimeException {
         private final var obj;
@@ -176,19 +178,19 @@ public class Data {
     public static LString theString(var obj) { return typeCast(obj, LString.class, LString.typeName); }
     public static String stringValue(var v) { return asString(v).value; }
 
-	private final static String SYMBOL_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_!?+-*/=<>";
-	
+    private final static String SYMBOL_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_!?+-*/=<>";
+
     public static class LSymbol extends LData {
         static final String typeName = "symbol";
         static ConcurrentHashMap<String,LSymbol> symbols = new ConcurrentHashMap<String,LSymbol>();
         static boolean isValid(String name) {
-			int len = name.length();
-			//FIXME: a regex to do this faster
-			for (int i=0; i<len; i++)
-				if (SYMBOL_CHARS.indexOf(name.charAt(i)) < 0) return false;
-			return true;
-		}
-			
+            int len = name.length();
+            //FIXME: a regex to do this faster
+            for (int i=0; i<len; i++)
+                if (SYMBOL_CHARS.indexOf(name.charAt(i)) < 0) return false;
+            return true;
+        }
+
         LSymbol type() { return SYM_SYMBOL; }
         static LSymbol intern(String name) {
             LSymbol sym = symbols.get(name);
@@ -202,13 +204,13 @@ public class Data {
         }
         private final String name;
         LSymbol(String n) { this.name = n; }
-		public String name() { return name; }
+        public String name() { return name; }
         public String toString() { return name; }
         public boolean equals(Object o) {
             return this == o;
         }
     }
-	
+
     public static boolean isSymbol(var obj) { return obj instanceof LSymbol; }
     public static LSymbol asSymbol(var obj) { return (LSymbol)obj; }
     public static LSymbol theSymbol(var obj) { return typeCast(obj, LSymbol.class, LSymbol.typeName); }
@@ -221,14 +223,14 @@ public class Data {
         private LNumber(double v) { this.value = v; }
         LSymbol type() { return SYM_NUMBER; }
         public String toString() {
-			//FIXME
+            //FIXME
             String s = String.format("%f", value); //prevent scientific notation
-			if (s.indexOf('.') >= 0) {
-				while (s.endsWith("0")) //trim trailing zeros
-					s = s.substring(0, s.length()-1);
-            	if (s.endsWith(".")) //omit a trailing .
-					s = s.substring(0, s.length()-1);
-			}
+            if (s.indexOf('.') >= 0) {
+                while (s.endsWith("0")) //trim trailing zeros
+                    s = s.substring(0, s.length()-1);
+                if (s.endsWith(".")) //omit a trailing .
+                    s = s.substring(0, s.length()-1);
+            }
             //Infinity? NaN?
             return s;
         }
@@ -243,6 +245,7 @@ public class Data {
             return false;
         }
     }
+
     public static LNumber number(Number n) { return new LNumber(n.doubleValue()); }
     public static LNumber number(int n) { return new LNumber(n); }
     public static LNumber number(long n) { return new LNumber(n); }
@@ -256,8 +259,8 @@ public class Data {
 
     protected static class LList extends LData {
         static final String typeName = "list";
-        final var car;
-        final var cdr;
+        var car;
+        var cdr;
         LList(var car, var cdr) {
             this.car = car;
             this.cdr = cdr;
@@ -291,11 +294,15 @@ public class Data {
             StringBuilder sb = new StringBuilder();
             sb.append("(");
             var tmp = this;
-            while (tmp != NIL) {
+            while (tmp != NIL && isList(tmp)) {
                 if (tmp != this)
                     sb.append(" ");
                 sb.append(toString(car(tmp)));
                 tmp = cdr(tmp);
+            }
+            if (tmp != NIL) {
+                sb.append(" . ");
+                sb.append(toString(tmp));
             }
             sb.append(")");
             return sb.toString();
@@ -308,16 +315,19 @@ public class Data {
     public static var car(var obj) { return theList(obj).car; }
     public static var cdr(var obj) { return obj == NIL? NIL : theList(obj).cdr; }
 
-	public static var list(Object... v) {
-		var lst = NIL;
-      	for (int i=v.length-1; i >= 0; i--) {
-			lst = cons(asVar(v[i]), lst);
-      	}
-		return lst;
-	}
+    public static var list(Object... v) {
+        var lst = NIL;
+        for (int i=v.length-1; i >= 0; i--) {
+            lst = cons(asVar(v[i]), lst);
+        }
+        return lst;
+    }
     public static var makeList(List<var> lst) {
+        return makeList(lst, NIL);
+    }
+    public static var makeList(List<var> lst, var rest) {
         int idx = lst.size();
-        var result = NIL;
+        var result = rest;
         while (--idx >= 0) {
             result = cons(lst.get(idx), result);
         }
@@ -399,31 +409,17 @@ public class Data {
     public static LVector theVector(var obj) { return typeCast(obj, LVector.class, "vector"); }
     public static LVector makeVector(int size, var init) {
         var [] d = new var[size];
-		for (int i=0; i<size; i++)
-			d[i] = init;
-		return new LVector(d);
-	}
-	public static var vector(Object... ary) {
-        int max = ary.length;
-        var [] d = new var[max];
-        for (int i=0; i<max; i++)
-            d[i] = asVar(ary[i]);
+        for (int i=0; i<size; i++)
+            d[i] = init;
         return new LVector(d);
-	}
-/*
-    public static LVector vector(var d1) { var [] tmp = {d1}; return new LVector(tmp); }
-    public static LVector vector(var d1, var d2) { var [] tmp = {d1, d2}; return new LVector(tmp); }
-    public static LVector vector(var d1, var d2, var d3) { var [] tmp = {d1, d2, d3}; return new LVector(tmp); }
-*/
-/*
-    public static LVector vector(Object [] ary) {
+    }
+    public static var vector(Object... ary) {
         int max = ary.length;
         var [] d = new var[max];
         for (int i=0; i<max; i++)
             d[i] = asVar(ary[i]);
         return new LVector(d);
     }
-*/
     public static LVector makeVector(List<var> lst) {
         int max = lst.size();
         var [] d = new var[max];
@@ -432,111 +428,110 @@ public class Data {
         return new LVector(d);
     }
     public static var vectorRef(var vec, var idx) {
-		return asVector(vec).ref(intValue(idx));
-	}
+        return asVector(vec).ref(intValue(idx));
+    }
     public static void vectorSet(var vec, var idx, var val) {
-		asVector(vec).set(intValue(idx), val);
-	}
+        asVector(vec).set(intValue(idx), val);
+    }
 
     static class LMap extends LData {
         static final String typeName = "map";
-		var [] bindings;
-		int count;
+        var [] bindings;
+        int count;
         LMap() {
-			this(4);
+            this(4);
         }
         LMap(int cap) {
-			this.bindings = new var[2*cap];
-			this.count = 0;
-		}
+            this.bindings = new var[2*cap];
+            this.count = 0;
+        }
         LMap(Map<var,var> map) {
-			this(Math.max(map.size(), 4));
-			int i = 0;
-			for (Map.Entry<var, var> e : map.entrySet()) {
-				bindings[i++] = e.getKey();
-				bindings[i++] = e.getValue();
-			}
-			this.count = map.size() * 2;
+            this(Math.max(map.size(), 4));
+            int i = 0;
+            for (Map.Entry<var, var> e : map.entrySet()) {
+                bindings[i++] = e.getKey();
+                bindings[i++] = e.getValue();
+            }
+            this.count = map.size() * 2;
         }
         LSymbol type() { return SYM_MAP; }
-		int find(var key) {
-			for (int i=0; i<count; i+=2) {
-				if (key.equals(bindings[i]))
-					return i;
-			}
-			return -1;
-		}
-		void put(var key, var val) {
-			int i = find(key);
-			if (i < 0) {
-				if (count == bindings.length) {
-					int newcap = count*2;
-					var [] nbindings = new var[newcap];
-					System.arraycopy(bindings, 0, nbindings, 0, count);
-					bindings = nbindings;
-				}
-				bindings[count] = key;
-				bindings[count+1] = val;
-				count += 2;
-			} else {
-				bindings[i+1] = val;
-			}
-		}
-		int length() { return count / 2; }
+        int find(var key) {
+            for (int i=0; i<count; i+=2) {
+                if (key.equals(bindings[i]))
+                    return i;
+            }
+            return -1;
+        }
+        void put(var key, var val) {
+            int i = find(key);
+            if (i < 0) {
+                if (count == bindings.length) {
+                    int newcap = count*2;
+                    var [] nbindings = new var[newcap];
+                    System.arraycopy(bindings, 0, nbindings, 0, count);
+                    bindings = nbindings;
+                }
+                bindings[count] = key;
+                bindings[count+1] = val;
+                count += 2;
+            } else {
+                bindings[i+1] = val;
+            }
+        }
+        int length() { return count / 2; }
         public boolean equals(Object another) {
             if (another instanceof LMap) {
-				LMap other = (LMap)another;
-				//Q should equality be affected by order? Not for maps, but yes for maps. Hmm.
-				if (other.length() != length()) return false;
-				for (int i=0; i<count; i+=2) {
-					var key = bindings[i];
-					int j = other.find(key);
-					if (j < 0) return false;
-					if (!equal(bindings[i+1], other.bindings[j+1])) return false;
-				}
-				return true;
+                LMap other = (LMap)another;
+                if (other.length() != length()) return false;
+                for (int i=0; i<count; i+=2) {
+                    var key = bindings[i];
+                    int j = other.find(key);
+                    if (j < 0) return false;
+                    if (!equal(bindings[i+1], other.bindings[j+1])) return false;
+                }
+                return true;
             }
             return false;
         }
         boolean has(var key) {
-			return find(key) >= 0;
+            return find(key) >= 0;
         }
         var keyRef(int i) {
-			return bindings[i*2];
-		}
+            return bindings[i*2];
+        }
         var valueRef(int i) {
-			return bindings[i*2+1];
-		}
+            return bindings[i*2+1];
+        }
         var get(var key) {
-			int i = find(key);
-			if (i < 0) return NIL;
-			return bindings[i+1];
+            int i = find(key);
+            if (i < 0) return NIL;
+            return bindings[i+1];
         }
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append("{");
             boolean first = true;
-			for (int i=0; i<count; i+=2) {
+            for (int i=0; i<count; i+=2) {
                 if (i > 0)
                     sb.append(" ");
-				var k = bindings[i];
-				sb.append(k);
-				sb.append(" ");
+                var k = bindings[i];
+                sb.append(k);
+                sb.append(" ");
                 sb.append(bindings[i+1]);
             }
             sb.append("}");
             return sb.toString();
         }
     }
-	public static var map(Object... kv) {
-      	if (kv.length % 2 != 0)
-			throw error("Bad arguments to map, must be in pairs");
-		LMap m = new LMap();
-      	for (int i=0; i<kv.length; i+=2) {
-	         m.put(asVar(kv[i]), asVar(kv[i+1]));
-	      }
-		return m;
-	}
+    public static var map(Object... kv) {
+        if (kv.length % 2 != 0)
+            throw error("Bad arguments to map, must be in pairs");
+        LMap m = new LMap();
+        for (int i=0; i<kv.length; i+=2) {
+            m.put(asVar(kv[i]), asVar(kv[i+1]));
+        }
+        return m;
+    }
     public static var makeMap(Map<var,var> m) { return new LMap(m); }
     public static boolean isMap(var data) { return data instanceof LMap; }
     public static LMap asMap(var data) { return (LMap)data; }

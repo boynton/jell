@@ -158,8 +158,9 @@ function clean_dirs {
 }
 
 function clean {
-     rm -rf $CLASSES
-     clean_dirs .
+    rm -rf test-output
+    rm -rf $CLASSES
+    clean_dirs .
 }
 
 function really_clean {

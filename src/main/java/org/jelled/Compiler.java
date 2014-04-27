@@ -13,6 +13,14 @@ public class Compiler {
     static final var SYM_IF = intern("if");
     static final var SYM_SET = intern("set!");
 
+    static final var SYM_CAR = intern("car");
+    static final var SYM_CDR = intern("cdr");
+    static final var SYM_SET_CDR_BANG = intern("set-cdr!");
+
+    static final var SYM_NULLP = intern("null?");
+    static final var SYM_ADD = intern("+");
+    static final var SYM_MUL = intern("*");
+
     LModule module;
 
     Compiler(LModule module) {
@@ -140,11 +148,43 @@ public class Compiler {
         }
     }
 
+    private boolean compilePrimopCall(LCode code, var fn, int argc, boolean bTail, boolean bIgnoreResult) {
+        boolean b = false;
+        if (equal(SYM_CAR, fn) && argc == 1) {
+            code.emitCar();
+            b = true;
+        }
+        else if (equal(SYM_CDR, fn) && argc == 1) {
+            code.emitCdr();
+            b = true;
+        }
+        else if (equal(SYM_NULLP, fn) && argc == 1) {
+            code.emitNullP();
+            b = true;
+        }
+        else if (equal(SYM_ADD, fn) && argc == 2) {
+            code.emitAdd();
+            b = true;
+        }
+        else if (equal(SYM_MUL, fn) && argc == 2) {
+            code.emitMul();
+            b = true;
+        }
+        if (b) {
+            if (bTail)
+                code.emitReturn();
+            else if (bIgnoreResult)
+                code.emitPop();
+        }
+        return b;
+    }
+
     private void compileFuncall(LCode code, var env, var fn, var args, boolean bTail, boolean bIgnoreResult) {
         int argc = length(args);
         if (argc < 0)
             error("bad funcall: (" + fn + " " + args);
         compileArgs(code, env, args);
+        if (compilePrimopCall(code, fn, argc, bTail, bIgnoreResult)) return;
         compileExpr(code, env, fn, false, false);
         if (bTail) {
             if (false) {

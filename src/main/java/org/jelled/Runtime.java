@@ -21,6 +21,13 @@ public class Runtime extends Notation {
     static final int DEFGLOBAL_OPCODE = 11;
     static final int SETLOCAL_OPCODE = 12;
 
+    //these are not strictly necessary, but speed things up a bit.
+    static final int NULLP_OPCODE = 13;
+    static final int CAR_OPCODE = 14;
+    static final int CDR_OPCODE = 15;
+    static final int ADD_OPCODE = 16;
+    static final int MUL_OPCODE = 17;
+
     static final LSymbol SYM_LITERAL = LSymbol.intern("literal");
     static final LSymbol SYM_LOCAL = LSymbol.intern("local");
     static final LSymbol SYM_JUMPFALSE = LSymbol.intern("jumpfalse");
@@ -35,8 +42,15 @@ public class Runtime extends Notation {
     static final LSymbol SYM_FUNC = LSymbol.intern("function");
     static final LSymbol SYM_SETLOCAL = LSymbol.intern("setlocal");
 
+    static final LSymbol SYM_CAR = LSymbol.intern("car");
+    static final LSymbol SYM_CDR = LSymbol.intern("cdr");
+    static final LSymbol SYM_NULL_P = LSymbol.intern("null?");
+    static final LSymbol SYM_ADD = LSymbol.intern("+");
+    static final LSymbol SYM_MUL = LSymbol.intern("*");
+
     static final LSymbol SYM_FUNCTION = intern("function");
     static final LSymbol SYM_MODULE = intern("module");
+
 
     static class IntVector {
         int [] elements;
@@ -131,6 +145,16 @@ public class Runtime extends Notation {
                     emitReturn();
                 } else if (op == SYM_DEFGLOBAL) {
                     emitDefGlobal(cadr(instr));
+                } else if (op == SYM_CAR) {
+                    emitCar();
+                } else if (op == SYM_CDR) {
+                    emitCdr();
+                } else if (op == SYM_NULL_P) {
+                    emitNullP();
+                } else if (op == SYM_ADD) {
+                    emitAdd();
+                } else if (op == SYM_MUL) {
+                    emitMul();
                 } else {
                     error("Unknown instruction: " + op);
                 }
@@ -213,6 +237,28 @@ public class Runtime extends Notation {
             return this;
         }
 
+        public LCode emitCar() {
+            ops.add(CAR_OPCODE);
+            return this;
+        }
+        public LCode emitCdr() {
+            ops.add(CDR_OPCODE);
+            return this;
+        }
+        public LCode emitNullP() {
+            ops.add(NULLP_OPCODE);
+            return this;
+        }
+
+        public LCode emitAdd() {
+            ops.add(ADD_OPCODE);
+            return this;
+        }
+        public LCode emitMul() {
+            ops.add(MUL_OPCODE);
+            return this;
+        }
+
         public int decompile(StringBuilder sb, int offset) {
             switch (ops.getInt(offset)) {
             case LITERAL_OPCODE:
@@ -251,6 +297,21 @@ public class Runtime extends Notation {
             case SETLOCAL_OPCODE:
                 sb.append(" (" + SYM_SETLOCAL + " " + module.getConstant(ops.getInt(offset+1)) + ")");
                 return offset + 3;
+            case NULLP_OPCODE:
+                sb.append(" (" + SYM_NULL_P + ")");
+                return offset + 1;
+            case CAR_OPCODE:
+                sb.append(" (" + SYM_CAR + ")");
+                return offset + 1;
+            case CDR_OPCODE:
+                sb.append(" (" + SYM_CDR + ")");
+                return offset + 1;
+            case ADD_OPCODE:
+                sb.append(" (" + SYM_ADD + ")");
+                return offset + 1;
+            case MUL_OPCODE:
+                sb.append(" (" + SYM_MUL + ")");
+                return offset + 1;
             default:
                 sb.append("?");
                 System.out.println("FIX ME: " + ops.getInt(offset));
@@ -430,10 +491,6 @@ public class Runtime extends Notation {
     public static boolean isModule(var mod) { return mod instanceof LModule; }
     public static LModule asModule(var mod) { if (!isModule(mod)) error("not a module", mod); return (LModule)mod; }
 
-    //    public static var compile(var module, var expr) {
-    //        return new Compiler(module).compile(expr);
-    //    }
-
     public static var exec(var thunk) {
         ArrayList<LSymbol> defs = new ArrayList<LSymbol>();
         LVM vm = new LVM();
@@ -578,6 +635,8 @@ public class Runtime extends Notation {
         }
 
         var exec(LCode code, List<LSymbol> collectDefs) {
+            var tmp;
+            double tmpnum;
             //boolean trace = false;
             //if (trace) System.err.println("------------------ BEGIN EXECUTION of " + code.module);
             defs = collectDefs;
@@ -690,6 +749,36 @@ public class Runtime extends Notation {
                             //if (trace) System.err.println("jmp\t" + ops[pc+1]);
                             pc += ops[pc+1];
                             break;
+
+                        case CAR_OPCODE:
+                            stack[sp] = car(stack[sp]);
+                            pc += 1;
+                            break;
+
+                        case CDR_OPCODE:
+                            stack[sp] = cdr(stack[sp]);
+                            pc += 1;
+                            break;
+
+                        case NULLP_OPCODE:
+                            stack[sp] = (stack[sp] == NIL)? TRUE : FALSE;
+                            pc += 1;
+                            break;
+
+                        case ADD_OPCODE:
+                            tmpnum = doubleValue(stack[sp++]);
+                            stack[sp] = number(tmpnum + doubleValue(stack[sp]));
+                            pc += 1;
+                            break;
+
+                        case MUL_OPCODE:
+                            tmpnum = doubleValue(stack[sp++]);
+                            stack[sp] = number(tmpnum * doubleValue(stack[sp]));
+                            pc += 1;
+                            break;
+
+                        default:
+                            throw error("Bad instruction: " + ops[pc]);
                         }
                     }
                 } catch (Exception e) {

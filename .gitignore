@@ -1,5 +1,10 @@
+target/
+.classpath
+*.class
+.DS_Store
 *~
-#*
-target
-test-results/
+*#*
 _*
+*.jar
+.classpath
+target/

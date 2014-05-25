@@ -308,7 +308,7 @@ public class Notation extends Data {
         var decodeSharp() {
             int c = getChar();
             if (c == '\\') {
-				//character constant
+                //character constant
                 String token = decodeAtom(0);
                 //FIXME: implement Character type if I want to support Scheme
                 if ("space".equals(token))
@@ -317,19 +317,19 @@ public class Notation extends Data {
                     return string("\n");
                 else if (token.length() == 1) { //FIX ME: #\
                     return string(token);
-            	} else {
-					//#\alarm, #\backspace, #\delete, #\escape, #\null, #\return, #\tab
+                } else {
+                    //#\alarm, #\backspace, #\delete, #\escape, #\null, #\return, #\tab
                     error("Bad character literal: #\\" + token);
-				}
+                }
             } else {
                 ungetChar(c);
             }
-			// #| ... |# is a  block comment
-			// #; comments the next datum, independent of the lines
-			//#( means vector constant for scheme
-			//#u8( means a bytevector constant for scheme
-			//#e, #i, #b, #o, #d, #x are number modifiers, i.e. #x00f0 for a hex number
-			//#123=(1 2 3), then #123# is a labeling syntax, allowing to read/write circular data structures
+            // #| ... |# is a  block comment
+            // #; comments the next datum, independent of the lines
+            //#( means vector constant for scheme
+            //#u8( means a bytevector constant for scheme
+            //#e, #i, #b, #o, #d, #x are number modifiers, i.e. #x00f0 for a hex number
+            //#123=(1 2 3), then #123# is a labeling syntax, allowing to read/write circular data structures
             String atom = decodeAtom(0);
             if ("t".equals(atom)) return TRUE; //scheme
             if ("f".equals(atom)) return FALSE; //scheme
@@ -347,7 +347,7 @@ public class Notation extends Data {
             while ((n = getChar()) != -1) {
                 c = (char)n;
                 if (escape) {
-					//note: this follows JSON conventions more than Scheme conventions.
+                    //note: this follows JSON conventions more than Scheme conventions.
                     escape = false;
                     switch (c) {
                     case '\\':
@@ -401,11 +401,11 @@ public class Notation extends Data {
                             }
                         }
                         error("read: bad escape character in string: \\" + (char)c);
-						break;
-					//\xuuuu; scheme unicide char (note trailing ;)
-					//\<intraline whitespace> - scheme multi-line constants
-					//\| scheme
-					//\a scheme alarm (ctrl-g)
+                        break;
+                        //\xuuuu; scheme unicide char (note trailing ;)
+                        //\<intraline whitespace> - scheme multi-line constants
+                        //\| scheme
+                        //\a scheme alarm (ctrl-g)
                     default:
                         error("read: bad escape character in string: \\" + (char)c);
                     }

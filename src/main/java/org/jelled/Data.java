@@ -62,6 +62,9 @@ public class Data {
     public static void println(Object s) {
         System.out.println(toString(s));
     }
+    public static void print(Object s) {
+        System.out.print(toString(s));
+    }
 
     static final class LSpecial extends var {
         private final LSymbol type;

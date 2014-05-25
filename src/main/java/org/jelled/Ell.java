@@ -17,6 +17,14 @@ public class Ell extends Runtime {
             this.env = mod;
             mod.definePrimitives(this);
         }
+        public var prim_print(var [] s, int sp, int argc) {
+            StringBuilder sb = new StringBuilder();
+            int end = sp + argc;
+            while (sp < end)
+                sb.append(s[sp++]);
+            System.out.print(sb.toString());
+            return NIL;
+        }
         public var prim_println(var [] s, int sp, int argc) {
             StringBuilder sb = new StringBuilder();
             int end = sp + argc;

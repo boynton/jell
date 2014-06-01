@@ -81,19 +81,19 @@ public class Ell extends Runtime {
             return number(doubleValue(obj1) / doubleValue(obj2));
         }
         public var operator_lt(var obj1, var obj2) {
-            return (doubleValue(obj1) < doubleValue(obj2))? obj1 : NIL;
+            return (doubleValue(obj1) < doubleValue(obj2))? TRUE : FALSE;
         }
         public var operator_le(var obj1, var obj2) {
-            return (doubleValue(obj1) <= doubleValue(obj2))? obj1 : NIL;
+            return (doubleValue(obj1) <= doubleValue(obj2))? TRUE : FALSE;
         }
         public var operator_eq(var obj1, var obj2) {
             return equal(obj1, obj2)? TRUE : FALSE;
         }
         public var operator_ge(var obj1, var obj2) {
-            return (doubleValue(obj1) >= doubleValue(obj2))? obj1 : NIL;
+            return (doubleValue(obj1) >= doubleValue(obj2))? TRUE : FALSE;
         }
         public var operator_gt(var obj1, var obj2) {
-            return (doubleValue(obj1) > doubleValue(obj2))? obj1 : NIL;
+            return (doubleValue(obj1) > doubleValue(obj2))? TRUE : FALSE;
         }
         public var primitive_identical_p(var obj1, var obj2) {
             return bool(obj1 == obj2);
@@ -135,7 +135,7 @@ public class Ell extends Runtime {
             return NIL;
         }
         public var primitive_append(var lst1, var lst2) { return concat(lst1, lst2); }
-        public var primitive_not(var obj) { return isFalse(obj)? TRUE : FALSE; }
+        public var primitive_not(var obj) { return (obj == FALSE)? TRUE : FALSE; }
         public var primitive_car(var obj) { return car(obj); }
         public var primitive_cdr(var obj) { return cdr(obj); }
         public var primitive_set_car_bang(var pair, var val) {

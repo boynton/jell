@@ -60,10 +60,10 @@ public class Data {
         return o.toString();
     }
     public static void println(Object s) {
-        System.out.println(toString(s));
+        System.out.println(Data.toString(s));
     }
     public static void print(Object s) {
-        System.out.print(toString(s));
+        System.out.print(Data.toString(s));
     }
 
     static final class LSpecial extends var {
@@ -127,8 +127,8 @@ public class Data {
     public static final LBoolean FALSE = new LBoolean(false);
     public static var bool(boolean b) { return b? TRUE : FALSE; }
     public static boolean isBoolean(var d) { return d instanceof LBoolean; }
-    public static final boolean isFalse(var d) { return d == FALSE || d == NIL; }
-    public static boolean isTrue(var d) { return d != FALSE && d != NIL; }
+    public static final boolean isFalse(var d) { return d == FALSE; }
+    public static boolean isTrue(var d) { return d != FALSE; }
     public static boolean booleanValue(var d) { return isTrue(d); }
 
     public static String escapeString(String s) {
@@ -300,12 +300,12 @@ public class Data {
             while (tmp != NIL && isList(tmp)) {
                 if (tmp != this)
                     sb.append(" ");
-                sb.append(toString(car(tmp)));
+                sb.append(Data.toString(car(tmp)));
                 tmp = cdr(tmp);
             }
             if (tmp != NIL) {
                 sb.append(" . ");
-                sb.append(toString(tmp));
+                sb.append(Data.toString(tmp));
             }
             sb.append(")");
             return sb.toString();
@@ -401,7 +401,7 @@ public class Data {
             for (int i=offset; i<end; i++) {
                 if (i != offset)
                     sb.append(" ");
-                sb.append(toString(elements[i]));
+                sb.append(Data.toString(elements[i]));
             }
             sb.append("]");
             return sb.toString();

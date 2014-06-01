@@ -740,7 +740,7 @@ public class Runtime extends Notation {
                             break;
                         case JUMPFALSE_OPCODE:
                             //if (trace) System.err.println("fjmp\t" + ops[pc+1]);
-                            if (isFalse(stack[sp++]))
+	                        if (stack[sp++] == FALSE)
                                 pc += ops[pc+1];
                             else
                                 pc += 2;

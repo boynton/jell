@@ -23,8 +23,8 @@ public class TestTypes {
 
         assertFalse(isBoolean(NIL));
         assertTrue(equal(NIL, NIL));
-        assertTrue(isFalse(NIL));
-        assertFalse(isTrue(NIL));
+        assertFalse(isFalse(NIL)); //NIL (or '()) is *not* boolean false.
+        assertTrue(isTrue(NIL));
     }
 
     @Test

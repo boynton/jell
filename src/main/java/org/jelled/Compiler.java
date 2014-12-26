@@ -106,7 +106,7 @@ public class Compiler {
                 if (calculateLocation(loc, sym, env)) {
                     code.emitSetLocal(loc[0], loc[1]);
                 } else {
-                    code.emitDefGlobal(expr); //should be setglobal
+                    code.emitDefGlobal(cadr(expr)); //should be setglobal
                 }
                 if (bIgnoreResult) code.emitPop();
                 else if (bTail) code.emitReturn();
@@ -166,10 +166,12 @@ public class Compiler {
             code.emitAdd();
             b = true;
         }
+/*
         else if (equal(SYM_MUL, fn) && argc == 2) {
             code.emitMul();
             b = true;
         }
+*/
         if (b) {
             if (bTail)
                 code.emitReturn();

@@ -21,6 +21,7 @@ public class Data {
         protected var() { }
         public boolean equals(Object other) { return this == other; }
         public String toString() { return "<" + type().name + ">"; }
+        public int hashCode() { return super.hashCode(); }
         abstract LSymbol type();
     }
 
@@ -240,6 +241,7 @@ public class Data {
         int asInt() { return (int)value; }
         long asLong() { return (long)value; }
         double asDouble() { return value; }
+        public int hashCode() { return new Double(value).hashCode(); }
         public boolean equals(Object o) {
             if (o instanceof LNumber) {
                 if (value == ((LNumber)o).value)

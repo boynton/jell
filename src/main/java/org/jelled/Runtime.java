@@ -44,9 +44,9 @@ public class Runtime extends Notation {
 
     static final LSymbol SYM_CAR = LSymbol.intern("car");
     static final LSymbol SYM_CDR = LSymbol.intern("cdr");
-    static final LSymbol SYM_NULL_P = LSymbol.intern("null?");
-    static final LSymbol SYM_ADD = LSymbol.intern("+");
-    static final LSymbol SYM_MUL = LSymbol.intern("*");
+    static final LSymbol SYM_NULL_P = LSymbol.intern("null");
+    static final LSymbol SYM_ADD = LSymbol.intern("add");
+    static final LSymbol SYM_MUL = LSymbol.intern("mul");
 
     static final LSymbol SYM_FUNCTION = intern("function");
     static final LSymbol SYM_MODULE = intern("module");

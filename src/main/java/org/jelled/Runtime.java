@@ -130,6 +130,7 @@ public class Runtime extends Notation {
                 } else if (op == SYM_LOCAL) {
                     emitLocal(intValue(cadr(instr)), intValue(caddr(instr)));
                 } else if (op == SYM_SETLOCAL) {
+		System.out.println("HERE:" + instr);
                     emitSetLocal(intValue(cadr(instr)), intValue(caddr(instr)));
                 } else if (op == SYM_GLOBAL) {
                     emitGlobal(cadr(instr));
@@ -143,6 +144,8 @@ public class Runtime extends Notation {
                     emitTailCall(intValue(cadr(instr)));
                 } else if (op == SYM_RETURN) {
                     emitReturn();
+				} else if (op == SYM_POP) {
+					emitPop();
                 } else if (op == SYM_DEFGLOBAL) {
                     emitDefGlobal(cadr(instr));
                 } else if (op == SYM_CAR) {
@@ -289,13 +292,13 @@ public class Runtime extends Notation {
                 sb.append(" (" + SYM_POP + ")");
                 return offset + 1;
             case LOCAL_OPCODE:
-                sb.append(" (" + SYM_LOCAL + "  " + ops.getInt(offset+1) + " " + ops.getInt(offset+2) + ")");
+                sb.append(" (" + SYM_LOCAL + " " + ops.getInt(offset+1) + " " + ops.getInt(offset+2) + ")");
                 return offset + 3;
             case CLOSURE_OPCODE:
                 sb.append(" (" + SYM_CLOSURE + " " + module.getConstant(ops.getInt(offset+1)) + ")");
                 return offset + 2;
             case SETLOCAL_OPCODE:
-                sb.append(" (" + SYM_SETLOCAL + " " + module.getConstant(ops.getInt(offset+1)) + ")");
+            	sb.append(" (" + SYM_SETLOCAL + " " + ops.getInt(offset+1) + " " + ops.getInt(offset+2) + ")");
                 return offset + 3;
             case NULLP_OPCODE:
                 sb.append(" (" + SYM_NULL_P + ")");
@@ -324,9 +327,10 @@ public class Runtime extends Notation {
             int i = 0;
             sb.append("(" + SYM_FUNC + " ");
             sb.append(argc);
-            while (i < max) {
-                i = decompile(sb, i);
-            }
+//            while (i < max) {
+//                i = decompile(sb, i);
+//            }
+			sb.append(" " + ops);
             sb.append(")");
             return sb.toString();
         }
@@ -364,7 +368,22 @@ public class Runtime extends Notation {
             }
             return i;
         }
-        public String toString() { return "<module " + name + " " + hashCode() + ">"; }
+        //public String toString() { return "<module " + name + " " + hashCode() + ">"; }
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+			sb.append("<module ");
+			sb.append(name);
+			sb.append(", constants:[");
+			boolean first = true;
+			int max = constantsMap.size();
+			for (int i=0; i<max; i++) {
+				var obj = constants[i];
+				if (first) { first = false; } else { sb.append(" "); }
+				sb.append(obj);
+			}
+			sb.append("]>");
+			return sb.toString();
+		}
         var getExports() {
             return exports;
         }
@@ -633,7 +652,39 @@ public class Runtime extends Notation {
         var exec(LCode code) {
             return exec(code, null);
         }
-
+		String showArray(var [] ary) {
+			String s = "[";
+			if (ary != null) {
+				boolean first = true;
+				for (var v : ary) {
+					if (first) { first = false; } else { s += " "; }
+				    s += v;
+				}
+			}
+			s += "]";
+			return s;
+		}
+		
+		String showEnv(Frame f) {
+			String s = "";
+			while (true) {
+				s += showArray(f.elements);
+				if (f.locals == null) {
+					break;
+				}
+				f = f.locals;
+			}
+			return s;
+		}
+		String showStack(var [] stack, int sp) {
+			int end = stack.length;
+			String s = "[";
+			while (sp < end) {
+				s = s + " " + stack[sp++];
+			}
+			return s + " ]";
+		}
+		
         var exec(LCode code, List<LSymbol> collectDefs) {
             var tmp;
             double tmpnum;
@@ -658,7 +709,6 @@ public class Runtime extends Notation {
             while (true) {
                 try {
                     while (true) {
-
                         switch (ops[pc]) {
                         case LITERAL_OPCODE:
                             //if (trace) System.err.println("const\t" + constants[ops[pc+1]]);
@@ -898,7 +948,7 @@ public class Runtime extends Notation {
                 constants = environment.constants;
                 environment = environment.previous;
             } else
-                error("Unhandled case in tailcall");
+                error("Unhandled case in tailcall: " + fun);
         }
 
         private final var closure(int i, Frame env) {
@@ -974,9 +1024,10 @@ public class Runtime extends Notation {
             expr = read(channel);
         }
         close(channel);
-        //println("; read: " + write(source));
+        println("; read: " + write(source));
         var code = new Compiler(module).compile(source);
-        //println("; compiled to: " + write(code));
+        println("; compiled to: " + write(code));
+		println("; module: " + module);
         return code;
     }
 

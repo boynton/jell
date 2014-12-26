@@ -9,14 +9,14 @@
                        (set! system_loop
                            (lambda (b q j)
                                (if (> j n)
-                                   #f
+                                   false
                                    (begin
                                        (begin
                                            ((lambda (system_loop)
                                                 (set! system_loop
                                                     (lambda (k)
                                                         (if (zero? k)
-                                                            #f
+                                                            false
                                                             (begin
                                                                 (begin
                                                                     (set! q
@@ -44,7 +44,7 @@
                                                                     (- k
                                                                        1))))))
                                                 (system_loop m))
-                                            #f)
+                                            false)
                                            ((lambda (s)
                                                 ((lambda (system_loop)
                                                      (set! system_loop
@@ -59,7 +59,7 @@
                                                                             l))))))
                                                      (system_loop
                                                          (string-length s)))
-                                                 #f))
+                                                 false))
                                             (number->string
                                                 (+ b (quotient q r))))
                                            (display
@@ -71,14 +71,14 @@
                                            0
                                            (+ 1 j))))))
                        (system_loop 2 0 1))
-                   #f)
+                   false)
                   (newline))
               ((lambda (system_loop)
                    (set! system_loop
                        (lambda (i s)
                            (if (>= i d) s (system_loop (+ 1 i) (* 10 s)))))
                    (system_loop 0 1))
-               #f)
+               false)
               (make-vector (+ 1 m) 2)))
          (quotient (* n (* d 3322)) 1000))))
 

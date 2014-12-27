@@ -20,13 +20,12 @@ public class Runtime extends Notation {
     static final int GLOBAL_OPCODE = 10;
     static final int DEFGLOBAL_OPCODE = 11;
     static final int SETLOCAL_OPCODE = 12;
-
-    //these are not strictly necessary, but speed things up a bit.
     static final int NULL_OPCODE = 13;
     static final int CAR_OPCODE = 14;
     static final int CDR_OPCODE = 15;
     static final int ADD_OPCODE = 16;
     static final int MUL_OPCODE = 17;
+    static final int USE_OPCODE = 18;
 
     static final LSymbol SYM_LITERAL = LSymbol.intern("literal");
     static final LSymbol SYM_LOCAL = LSymbol.intern("local");
@@ -41,6 +40,7 @@ public class Runtime extends Notation {
     static final LSymbol SYM_DEFGLOBAL = LSymbol.intern("defglobal");
     static final LSymbol SYM_FUNC = LSymbol.intern("function");
     static final LSymbol SYM_SETLOCAL = LSymbol.intern("setlocal");
+    static final LSymbol SYM_USE = LSymbol.intern("use");
 
     static final LSymbol SYM_CAR = LSymbol.intern("car");
     static final LSymbol SYM_CDR = LSymbol.intern("cdr");
@@ -51,6 +51,7 @@ public class Runtime extends Notation {
     static final LSymbol SYM_FUNCTION = intern("function");
     static final LSymbol SYM_MODULE = intern("module");
 
+    static boolean verbose = false;
 
     static class IntVector {
         int [] elements;
@@ -143,10 +144,12 @@ public class Runtime extends Notation {
                     emitTailCall(intValue(cadr(instr)));
                 } else if (op == SYM_RETURN) {
                     emitReturn();
-				} else if (op == SYM_POP) {
-					emitPop();
+                } else if (op == SYM_POP) {
+                    emitPop();
                 } else if (op == SYM_DEFGLOBAL) {
                     emitDefGlobal(cadr(instr));
+                } else if (op == SYM_USE) {
+                    emitUse(cadr(instr));
                 } else if (op == SYM_CAR) {
                     emitCar();
                 } else if (op == SYM_CDR) {
@@ -233,12 +236,18 @@ public class Runtime extends Notation {
             ops.add(RETURN_OPCODE);
             return this;
         }
-
         public LCode emitPop() {
             ops.add(POP_OPCODE);
             return this;
         }
-
+        public LCode emitUse(var sym) {
+            if (!isSymbol(sym))
+                error("emitUse: not a symbol: " + sym);
+            ops.add(USE_OPCODE);
+            ops.add(module.putConstant(sym));
+            return this;
+        }
+        
         public LCode emitCar() {
             ops.add(CAR_OPCODE);
             return this;
@@ -299,6 +308,9 @@ public class Runtime extends Notation {
             case SETLOCAL_OPCODE:
             	sb.append(" (" + SYM_SETLOCAL + " " + ops.getInt(offset+1) + " " + ops.getInt(offset+2) + ")");
                 return offset + 3;
+            case USE_OPCODE:
+                sb.append(" (" + SYM_USE + " " + module.getConstant(ops.getInt(offset+1)) + ")");
+                return offset + 2;
             case NULL_OPCODE:
                 sb.append(" (" + SYM_NULL + ")");
                 return offset + 1;
@@ -326,10 +338,10 @@ public class Runtime extends Notation {
             int i = 0;
             sb.append("(" + SYM_FUNC + " ");
             sb.append(argc);
-//            while (i < max) {
-//                i = decompile(sb, i);
-//            }
-			sb.append(" " + ops);
+            //            while (i < max) {
+            //                i = decompile(sb, i);
+            //            }
+            sb.append(" " + ops);
             sb.append(")");
             return sb.toString();
         }
@@ -343,8 +355,10 @@ public class Runtime extends Notation {
         HashMap<var,var> globals;
         HashMap<var,Integer> constantsMap;
         var [] constants;
-        LModule(String name) {
+        Class<?> primitives;
+        LModule(String name, Class<?> primitives) {
             this.name = name;
+            this.primitives = primitives;
             this.exports = NIL;
             this.globals = new HashMap<var,var>();
             this.globals.put(TRUE, TRUE);
@@ -368,21 +382,21 @@ public class Runtime extends Notation {
             return i;
         }
         //public String toString() { return "<module " + name + " " + hashCode() + ">"; }
-		public String toString() {
-			StringBuilder sb = new StringBuilder();
-			sb.append("<module ");
-			sb.append(name);
-			sb.append(", constants:[");
-			boolean first = true;
-			int max = constantsMap.size();
-			for (int i=0; i<max; i++) {
-				var obj = constants[i];
-				if (first) { first = false; } else { sb.append(" "); }
-				sb.append(obj);
-			}
-			sb.append("]>");
-			return sb.toString();
-		}
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("<module ");
+            sb.append(name);
+            sb.append(", constants:[");
+            boolean first = true;
+            int max = constantsMap.size();
+            for (int i=0; i<max; i++) {
+                var obj = constants[i];
+                if (first) { first = false; } else { sb.append(" "); }
+                sb.append(obj);
+            }
+            sb.append("]>");
+            return sb.toString();
+        }
         var getExports() {
             return exports;
         }
@@ -491,11 +505,11 @@ public class Runtime extends Notation {
         }
     }
 
-    public static LModule module(String name, Object primitives) {
-        LModule module = new LModule(name);
-        if (primitives != null) {
+    public static LModule module(String name, Class<?> primitivesClass) {
+        LModule module = new LModule(name, primitivesClass);
+        if (primitivesClass != null) {
             try {
-                Class<?> primitivesClass = primitives.getClass();
+                Object primitives = primitivesClass.newInstance();
                 java.lang.reflect.Method meth = primitivesClass.getMethod("init", LModule.class);
                 if (meth != null)
                     meth.invoke(primitives, module);
@@ -648,47 +662,54 @@ public class Runtime extends Notation {
             stack = new var[16000];
         }
 
-        var exec(LCode code) {
-            return exec(code, null);
+        //        var exec(LCode code) {
+        //            return exec(code, null);
+        //        }
+        String showArray(var [] ary) {
+            String s = "[";
+            if (ary != null) {
+                boolean first = true;
+                for (var v : ary) {
+                    if (first) { first = false; } else { s += " "; }
+                    s += v;
+                }
+            }
+            s += "]";
+            return s;
         }
-		String showArray(var [] ary) {
-			String s = "[";
-			if (ary != null) {
-				boolean first = true;
-				for (var v : ary) {
-					if (first) { first = false; } else { s += " "; }
-				    s += v;
-				}
-			}
-			s += "]";
-			return s;
-		}
 		
-		String showEnv(Frame f) {
-			String s = "";
-			while (true) {
-				s += showArray(f.elements);
-				if (f.locals == null) {
-					break;
-				}
-				f = f.locals;
-			}
-			return s;
-		}
-		String showStack(var [] stack, int sp) {
-			int end = stack.length;
-			String s = "[";
-			while (sp < end) {
-				s = s + " " + stack[sp++];
-			}
-			return s + " ]";
-		}
+        String showEnv(Frame f) {
+            String s = "";
+            while (true) {
+                s += showArray(f.elements);
+                if (f.locals == null) {
+                    break;
+                }
+                f = f.locals;
+            }
+            return s;
+        }
+        String showStack(var [] stack, int sp) {
+            int end = stack.length;
+            String s = "[";
+            while (sp < end) {
+                s = s + " " + stack[sp++];
+            }
+            return s + " ]";
+        }
+        String showOps(int [] ops) {
+            String s = "[";
+            for (int i : ops) {
+                s = s + " " + i;
+            }
+            return s + " ]";
+        }
 		
         var exec(LCode code, List<LSymbol> collectDefs) {
             var tmp;
             double tmpnum;
-            //boolean trace = false;
-            //if (trace) System.err.println("------------------ BEGIN EXECUTION of " + code.module);
+            boolean trace = false;
+            if (trace) System.err.println("------------------ BEGIN EXECUTION of " + code.module);
             defs = collectDefs;
             sp = stack.length;
 
@@ -704,19 +725,19 @@ public class Runtime extends Notation {
             module = code.module;
             constants = module.constants;
             ops = code.ops.elements;
+            if (trace) System.out.println(" ops: " + showOps(ops));
             pc = 0;
             while (true) {
                 try {
                     while (true) {
                         switch (ops[pc]) {
                         case LITERAL_OPCODE:
-                            //if (trace) System.err.println("const\t" + constants[ops[pc+1]]);
+                            if (trace) System.err.println("const\t" + constants[ops[pc+1]]);
                             stack[--sp] = constants[ops[pc+1]];
                             pc += 2;
                             break;
                         case GLOBAL_OPCODE:
-                            //if (trace) System.err.println("glob\t" + constants[ops[pc+1]]);
-                            //stack[--sp] = module.globalValue(constants[ops[pc+1]]);
+                            if (trace) System.err.println("glob\t" + constants[ops[pc+1]]);
                             stack[--sp] = module.globals.get(constants[ops[pc+1]]);
                             if (stack[sp] == null)
                                 error("Unbound variable: " + constants[ops[pc+1]]);
@@ -724,21 +745,21 @@ public class Runtime extends Notation {
                             pc += 2;
                             break;
                         case DEFGLOBAL_OPCODE:
-                            //if (trace) System.err.println("defglob\t" + constants[ops[pc+1]]);
+                            if (trace) System.err.println("defglob\t" + constants[ops[pc+1]]);
                             defGlobal(ops[pc+1], stack[sp]);
                             pc += 2;
                             break;
                         case CALL_OPCODE:
-                            //if (trace) System.err.println("call\t" + ops[pc+1]);
+                            if (trace) System.err.println("call\t" + ops[pc+1]);
                             //check_stack();
                             funcall(stack[sp++], ops[pc+1], pc+2);
                             break;
                         case TAILCALL_OPCODE:
-                            //if (trace) System.err.println("tcall\t" + ops[pc+1]);
+                            if (trace) System.err.println("tcall\t" + ops[pc+1]);
                             tailcall(stack[sp++], ops[pc+1]);
                             break;
                         case RETURN_OPCODE:
-                            //if (trace) System.err.println("ret");
+                            if (trace) System.err.println("ret");
                             if (environment.previous == null) {
                                 //if (trace) System.err.println("------------------ END EXECUTION of " + code.module);
                                 return stack[sp];
@@ -751,7 +772,7 @@ public class Runtime extends Notation {
                             environment = environment.previous;
                             break;
                         case LOCAL_OPCODE:
-                            //if (trace) System.err.println("getloc\t" + ops[pc+1] + " " + ops[pc+2]);
+                            if (trace) System.err.println("getloc\t" + ops[pc+1] + " " + ops[pc+2]);
                             {
                                 Frame tmpEnv = environment;
                                 int i = ops[pc+1];
@@ -765,7 +786,7 @@ public class Runtime extends Notation {
                             pc += 3;
                             break;
                         case SETLOCAL_OPCODE:
-                            //if (trace) System.err.println("setloc\t" + ops[pc+1] + " " + ops[pc+2]);
+                            if (trace) System.err.println("setloc\t" + ops[pc+1] + " " + ops[pc+2]);
                             {
                                 Frame tmpEnv = environment;
                                 int i = ops[pc+1];
@@ -778,54 +799,60 @@ public class Runtime extends Notation {
                             pc += 3;
                             break;
                         case POP_OPCODE:
-                            //if (trace) System.err.println("pop");
+                            if (trace) System.err.println("pop");
                             sp++;
                             pc += 1;
                             break;
                         case CLOSURE_OPCODE:
-                            //if (trace) System.err.println("closure");
+                            if (trace) System.err.println("closure\t" + constants[ops[pc+1]]);
                             stack[--sp] = closure(ops[pc+1], environment);
                             pc += 2;
                             break;
                         case JUMPFALSE_OPCODE:
-                            //if (trace) System.err.println("fjmp\t" + ops[pc+1]);
-	                        if (stack[sp++] == FALSE)
+                            if (trace) System.err.println("fjmp\t" + ops[pc+1]);
+                            if (stack[sp++] == FALSE)
                                 pc += ops[pc+1];
                             else
                                 pc += 2;
                             break;
                         case JUMP_OPCODE:
-                            //if (trace) System.err.println("jmp\t" + ops[pc+1]);
+                            if (trace) System.err.println("jmp\t" + ops[pc+1]);
                             pc += ops[pc+1];
                             break;
-
+                        case USE_OPCODE:
+                            if (trace) System.err.println("use\t" + constants[ops[pc+1]]);
+                            if (trace) System.err.println(" -> pc before: " + pc + ", ops:" + showOps(ops));
+                            useModule(constants[ops[pc+1]]);
+                            if (trace) System.err.println(" -> pc after: " + pc + ", ops:" + showOps(ops));
+                            pc += 2;
+                            break;
                         case CAR_OPCODE:
+                            if (trace) System.err.println("car");
                             stack[sp] = car(stack[sp]);
                             pc += 1;
                             break;
-
                         case CDR_OPCODE:
+                            if (trace) System.err.println("cdr");
                             stack[sp] = cdr(stack[sp]);
                             pc += 1;
                             break;
-
                         case NULL_OPCODE:
+                            if (trace) System.err.println("null");
                             stack[sp] = (stack[sp] == NIL)? TRUE : FALSE;
                             pc += 1;
                             break;
-
                         case ADD_OPCODE:
+                            if (trace) System.err.println("add");
                             tmpnum = doubleValue(stack[sp++]);
                             stack[sp] = number(tmpnum + doubleValue(stack[sp]));
                             pc += 1;
                             break;
-
                         case MUL_OPCODE:
+                            if (trace) System.err.println("mul");
                             tmpnum = doubleValue(stack[sp++]);
                             stack[sp] = number(tmpnum * doubleValue(stack[sp]));
                             pc += 1;
                             break;
-
                         default:
                             throw error("Bad instruction: " + ops[pc]);
                         }
@@ -979,30 +1006,52 @@ public class Runtime extends Notation {
             module.setGlobal(sym, val);
         }
 
+        private void useModule(var sym) {
+            String filename = symbolName(sym);
+            LCode thunk = asCode(loadModule(filename, module.primitives));
+            var result = Runtime.exec(thunk);
+            var exports = thunk.module.getExports();
+            while (exports != NIL) {
+                LSymbol export = asSymbol(car(exports));
+                var val = thunk.module.global(export);
+                module.setGlobal(export, val);
+                exports = cdr(exports);
+            }
+        }
+
     }
 
-    public static var runModule(String name, Object primitives) {
+    public static var runModule(String name, Class<?> primitives) {
         var code = loadModule(name, primitives);
-        println("; begin execution");
+        if (verbose) println("; begin execution");
         var result = exec(code);
-        println("; => " + result);
+        if (verbose) {
+            if (result != null) {
+                println("; => " + result);
+            }
+        }
         return result;
     }
 
-    public static var loadModule(String name, Object primitives) {
+    public static var loadModule(String name, Class<?> primitives) {
         var f = (name.indexOf('.') > 0)? file(name) : findModule(name);
         if (f == NIL)
             error("module not found: " + name);
         return loadModule(name, f, primitives);
     }
 
-    static String [] path = {"src/main/ell"}; //fix this
+    static String [] getPath() {
+        String spath = System.getenv("ELL_PATH");
+        if (spath == null) spath = ".:src/main/ell";
+        return spath.split(":");
+    }
 
     public static var findModule(String moduleName) {
         String name = (moduleName.endsWith(".ell") || moduleName.endsWith(".lap"))? moduleName : moduleName + ".ell";
-		if (name.startsWith("..") || name.startsWith("/")) {
-				return file(name);
-		}
+        if (name.startsWith("..") || name.startsWith("/")) {
+            return file(name);
+        }
+        String [] path = getPath();
         for (String dirname : path) {
             File dir = new File(dirname);
             if (dir.exists()) {
@@ -1015,8 +1064,8 @@ public class Runtime extends Notation {
         return null;
     }
 
-    public static var loadModule(String moduleName, var f, Object primitives) {
-        println("; loadModule: " + moduleName + " from " + f);
+    public static var loadModule(String moduleName, var f, Class<?> primitives) {
+        if (verbose) println("; loadModule: " + moduleName + " from " + f);
         LModule module = module(moduleName, primitives);
         var channel = open(f, READ);
         var source = list(intern("begin"));
@@ -1026,10 +1075,12 @@ public class Runtime extends Notation {
             expr = read(channel);
         }
         close(channel);
-        println("; read: " + write(source));
+        if (verbose) println("; read: " + write(source));
         var code = new Compiler(module).compile(source);
-        println("; compiled to: " + write(code));
-		println("; module: " + module);
+        if (verbose) {
+            println("; compiled to: " + write(code));
+            println("; module: " + module);
+        }
         return code;
     }
 

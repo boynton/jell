@@ -18,7 +18,7 @@ public class Compiler {
     static final var SYM_SET_CDR_BANG = intern("set-cdr!");
 
     static final var SYM_NULLP = intern("null?");
-    static final var SYM_PLUS = intern("-");
+    static final var SYM_PLUS = intern("+");
     static final var SYM_TIMES = intern("*");
 
     LModule module;
@@ -67,7 +67,9 @@ public class Compiler {
                 }
             } else if (SYM_BEGIN == fn) { //the begin special form
                 compileSequence(code, env, cdr(lst), bTail, bIgnoreResult);
-            } else if (SYM_LAP == fn) { //the lap special form -> already compiled code
+	        } else if (SYM_USE == fn) {
+				compileUse(code, lst);
+	        } else if (SYM_LAP == fn) { //the lap special form -> already compiled code
                 code.loadOps(cdr(lst));
             } else if (SYM_IF == fn) {
                 if (len == 3 || len == 4)
@@ -162,6 +164,7 @@ public class Compiler {
             code.emitNull();
             b = true;
         }
+
         else if (equal(SYM_PLUS, fn) && argc == 2) {
             code.emitAdd();
             b = true;
@@ -229,6 +232,18 @@ public class Compiler {
             code.setJumpLocation(loc2);
     }
 
+    private void compileUse(LCode code, var expr) {
+        if (length(expr) != 2) {
+            //to do: other options for use.
+            error("bad use expression: " + expr);
+        }
+        var sym = cadr(expr);
+        if (!isSymbol(sym)) {
+                error("Non-symbol first argument to use: " + sym);
+        }
+        code.emitUse(sym);
+	}
+	
     private boolean calculateLocation(int [] loc, var sym, var env) {
         int i = 0;
         while (env != NIL) {

@@ -4,12 +4,11 @@ public class Ell extends Runtime {
 
     public static void main(String [] args) {
         if (args.length > 0) {
-            runModule(args[0], new EllPrimitives());
+            runModule(args[0], EllPrimitives.class);
         } else {
             println("REPL NYI. Provide a filename");
         }
     }
-
     public static class EllPrimitives {
         LModule env;
 
@@ -148,18 +147,5 @@ public class Ell extends Runtime {
         }
         public var primitive_null_p(var obj) { return (obj == NIL)? TRUE : FALSE; }
         public var primitive_vector_p(var obj) { return isVector(obj)? TRUE : FALSE; }
-        public var primitive_use(var sym) {
-            String filename = symbolName(sym);
-            LCode thunk = asCode(loadModule(filename, new EllPrimitives()));
-            var result = exec(thunk);
-            var exports = thunk.module.getExports();
-            while (exports != NIL) {
-                LSymbol export = asSymbol(car(exports));
-                var val = thunk.module.global(export);
-                env.setGlobal(export, val);
-                exports = cdr(exports);
-            }
-            return sym;
-        }
     }
 }

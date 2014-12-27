@@ -18,8 +18,8 @@ public class Compiler {
     static final var SYM_SET_CDR_BANG = intern("set-cdr!");
 
     static final var SYM_NULLP = intern("null?");
-    static final var SYM_ADD = intern("+");
-    static final var SYM_MUL = intern("*");
+    static final var SYM_PLUS = intern("-");
+    static final var SYM_TIMES = intern("*");
 
     LModule module;
 
@@ -158,20 +158,18 @@ public class Compiler {
             code.emitCdr();
             b = true;
         }
-        else if (equal(SYM_NULLP, fn) && argc == 1) {
-            code.emitNullP();
+        else if (equal(SYM_NULL, fn) && argc == 1) {
+            code.emitNull();
             b = true;
         }
-        else if (equal(SYM_ADD, fn) && argc == 2) {
+        else if (equal(SYM_PLUS, fn) && argc == 2) {
             code.emitAdd();
             b = true;
         }
-/*
-        else if (equal(SYM_MUL, fn) && argc == 2) {
+        else if (equal(SYM_TIMES, fn) && argc == 2) {
             code.emitMul();
             b = true;
         }
-*/
         if (b) {
             if (bTail)
                 code.emitReturn();

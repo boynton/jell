@@ -22,7 +22,7 @@ public class Runtime extends Notation {
     static final int SETLOCAL_OPCODE = 12;
 
     //these are not strictly necessary, but speed things up a bit.
-    static final int NULLP_OPCODE = 13;
+    static final int NULL_OPCODE = 13;
     static final int CAR_OPCODE = 14;
     static final int CDR_OPCODE = 15;
     static final int ADD_OPCODE = 16;
@@ -44,7 +44,7 @@ public class Runtime extends Notation {
 
     static final LSymbol SYM_CAR = LSymbol.intern("car");
     static final LSymbol SYM_CDR = LSymbol.intern("cdr");
-    static final LSymbol SYM_NULL_P = LSymbol.intern("null");
+    static final LSymbol SYM_NULL = LSymbol.intern("null");
     static final LSymbol SYM_ADD = LSymbol.intern("add");
     static final LSymbol SYM_MUL = LSymbol.intern("mul");
 
@@ -130,7 +130,6 @@ public class Runtime extends Notation {
                 } else if (op == SYM_LOCAL) {
                     emitLocal(intValue(cadr(instr)), intValue(caddr(instr)));
                 } else if (op == SYM_SETLOCAL) {
-		System.out.println("HERE:" + instr);
                     emitSetLocal(intValue(cadr(instr)), intValue(caddr(instr)));
                 } else if (op == SYM_GLOBAL) {
                     emitGlobal(cadr(instr));
@@ -152,8 +151,8 @@ public class Runtime extends Notation {
                     emitCar();
                 } else if (op == SYM_CDR) {
                     emitCdr();
-                } else if (op == SYM_NULL_P) {
-                    emitNullP();
+                } else if (op == SYM_NULL) {
+                    emitNull();
                 } else if (op == SYM_ADD) {
                     emitAdd();
                 } else if (op == SYM_MUL) {
@@ -248,8 +247,8 @@ public class Runtime extends Notation {
             ops.add(CDR_OPCODE);
             return this;
         }
-        public LCode emitNullP() {
-            ops.add(NULLP_OPCODE);
+        public LCode emitNull() {
+            ops.add(NULL_OPCODE);
             return this;
         }
 
@@ -300,8 +299,8 @@ public class Runtime extends Notation {
             case SETLOCAL_OPCODE:
             	sb.append(" (" + SYM_SETLOCAL + " " + ops.getInt(offset+1) + " " + ops.getInt(offset+2) + ")");
                 return offset + 3;
-            case NULLP_OPCODE:
-                sb.append(" (" + SYM_NULL_P + ")");
+            case NULL_OPCODE:
+                sb.append(" (" + SYM_NULL + ")");
                 return offset + 1;
             case CAR_OPCODE:
                 sb.append(" (" + SYM_CAR + ")");
@@ -810,7 +809,7 @@ public class Runtime extends Notation {
                             pc += 1;
                             break;
 
-                        case NULLP_OPCODE:
+                        case NULL_OPCODE:
                             stack[sp] = (stack[sp] == NIL)? TRUE : FALSE;
                             pc += 1;
                             break;
@@ -1000,7 +999,10 @@ public class Runtime extends Notation {
     static String [] path = {"src/main/ell"}; //fix this
 
     public static var findModule(String moduleName) {
-        String name = moduleName.endsWith(".ell")? moduleName : moduleName + ".ell";
+        String name = (moduleName.endsWith(".ell") || moduleName.endsWith(".lap"))? moduleName : moduleName + ".ell";
+		if (name.startsWith("..") || name.startsWith("/")) {
+				return file(name);
+		}
         for (String dirname : path) {
             File dir = new File(dirname);
             if (dir.exists()) {

@@ -1,5 +1,5 @@
-package org.jelled;
-import static org.jelled.Runtime.*;
+package ell;
+import static ell.Runtime.*;
 import java.util.HashMap;
 import java.io.File;
 
@@ -187,7 +187,7 @@ public class Compiler {
         if (argc < 0)
             error("bad funcall: (" + fn + " " + args);
         compileArgs(code, env, args);
-        if (compilePrimopCall(code, fn, argc, bTail, bIgnoreResult)) return;
+        //        if (compilePrimopCall(code, fn, argc, bTail, bIgnoreResult)) return;
         compileExpr(code, env, fn, false, false);
         if (bTail) {
             if (false) {
